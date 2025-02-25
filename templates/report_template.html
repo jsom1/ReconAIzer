@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Scan report for {{ ip_address }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        header, footer {
+            text-align: center;
+        }
+        header {
+            margin-bottom: 30px;
+        }
+        h1, h2, h3, h4 {
+            color: #333;
+        }
+        .scan-info, .service, nav {
+            background: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .service h3 {
+            margin-top: 0;
+        }
+        .recommendations {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .recommendations li {
+            margin-bottom: 5px;
+        }
+        textarea {
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+            resize: vertical;
+        }
+        nav ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        nav li {
+            margin: 5px 0;
+        }
+        nav a {
+            text-decoration: none;
+            color: #007BFF;
+        }
+        nav a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Scan report for {{ ip_address }}</h1>
+        <p>Date: {{ scan_date }}</p>
+    </header>
+
+    <!-- Clickable Table of Contents -->
+    <nav>
+        <h2>Table of Contents</h2>
+        <ul>
+            {% for service in services %}
+            <li>
+                <a href="#{{ service.name }}_{{ service.port | replace('/', '_') }}">
+                    {{ service.name }} ({{ service.port }})
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </nav>
+
+    <section class="scan-info">
+        <h2>Nmap results</h2>
+        <pre>{{ nmap_scan_results }}</pre>
+    </section>
+
+    <section class="services">
+        <h2>Detected services and recommendations</h2>
+        {% for service in services %}
+        <div class="service" id="{{ service.name }}_{{ service.port | replace('/', '_') }}">
+            <h3>{{ service.name }} ({{ service.port }}) - Version: {{ service.version }}</h3>
+            <p><strong>Description:</strong> {{ service.description }}</p>
+            <p><strong>Vulnerability score:</strong> {{ service.vulnerability_score }}/10</p>
+            <h4>Recommendations</h4>
+            <ul class="recommendations">
+                {% for rec in service.recommendations %}
+                <li>
+                    <input type="checkbox"> {{ rec }}
+                </li>
+                {% endfor %}
+            </ul>
+            <textarea placeholder="Remarks..."></textarea>
+        </div>
+        {% endfor %}
+    </section>
+
+    <footer>
+        <p>Report generated with ReconAIzer</p>
+    </footer>
+</body>
+</html>
+
