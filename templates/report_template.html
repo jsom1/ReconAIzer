@@ -64,7 +64,13 @@
         <p>Date: {{ scan_date }}</p>
     </header>
 
-    <!-- Clickable Table of Contents -->
+    <section class="scan-info">
+        <h2>Nmap results</h2>
+        <pre>{{ nmap_scan_results }}</pre>
+        <textarea placeholder="Remarks..."></textarea>
+    </section>
+
+    <!-- Clickable Table of Contents placed after the Nmap results -->
     <nav>
         <h2>Table of Contents</h2>
         <ul>
@@ -77,11 +83,6 @@
             {% endfor %}
         </ul>
     </nav>
-
-    <section class="scan-info">
-        <h2>Nmap results</h2>
-        <pre>{{ nmap_scan_results }}</pre>
-    </section>
 
     <section class="services">
         <h2>Detected services and recommendations</h2>

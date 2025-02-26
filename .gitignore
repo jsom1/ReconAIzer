@@ -5,8 +5,14 @@ scan.xml
 report.md
 scan_report.html
 
+# RMarkdown files and generated HTML from reconaizer
+*.Rmd
+reconaizer.html
+
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 
+# MacOS system file
+.DS_Store
