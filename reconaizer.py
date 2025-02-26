@@ -43,6 +43,7 @@ def scan_nmap(ip_address):
     command = ["nmap", "-sV", "-sC", "-oX", "scan.xml", ip_address]
     try:
         result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+        nmap_command = " ".join(command)
         print(f"Scan results on {ip_address}:\n{result.stdout}")
         services = parse_nmap_xml("scan.xml")
         return services, result.stdout
@@ -127,6 +128,7 @@ def get_service_info(service_name, client):
     # print("Raw API response:", response) --> debug
 
     # The response is either in function_call or in content
+    # TODO: check why function calling never works
     try:
         function_call = response.choices[0].message.function_call
         if function_call and function_call.arguments:
@@ -190,7 +192,7 @@ def save_scan_to_report(ip_address, scan_output):
             report.write("</ul>\n")
             report.write("\n-----------------------------------------------------------------------------------------\n")
 
-def generate_report_html(ip_address, services_info, nmap_scan_results):
+def generate_report_html(ip_address, services_info, nmap_scan_results, nmap_command):
     # Jinja2 environment to load the template from the "templates" folder
     env = Environment(
         loader=FileSystemLoader("templates"),
@@ -202,7 +204,8 @@ def generate_report_html(ip_address, services_info, nmap_scan_results):
         "ip_address": ip_address,
         "scan_date": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "nmap_scan_results": nmap_scan_results,
-        "services": services_info
+        "services": services_info,
+        "nmap_command": nmap_command
     }
     
     html_content = template.render(context)
@@ -222,14 +225,56 @@ def main():
     
     openai.api_key = api_key
     ip_address = input(f"\033[32mTarget IP address: \033[0m")
-    services, nmap_output = scan_nmap(ip_address)
+    
+    print("\033[32m\nChoose a scan type:\033[0m")
+    print("1 - Default Scan (Top 1000 TCP ports)")
+    print("\033[34m    Uses: nmap -sV -sC -oX scan.xml <target>\033[0m")
+    print("    This scan checks the 1000 most common TCP ports with version detection and default scripts.")
+    print("2 - SYN Scan (Stealth scan)")
+    print("\033[34m    Uses: nmap -sS -oX scan.xml <target>\033[0m")
+    print("    This scan sends SYN packets without completing the TCP handshake for a stealthier approach.")
+    print("3 - Full Scan (All TCP ports)")
+    print("\033[34m    Uses: nmap -p- -sV -sC -oX scan.xml <target>\033[0m")
+    print("    This scan checks all TCP ports (1-65535) with version detection and default scripts. It takes longer.")
+    print("4 - Aggressive Scan")
+    print("\033[34m    Uses: nmap -A -oX scan.xml <target>\033[0m")
+    print("    This scan uses aggressive options (OS detection, version detection, script scanning, traceroute) for maximum information.")
+    print("5 - UDP Scan")
+    print("\033[34m    Uses: nmap -sU -oX scan.xml <target>\033[0m")
+    print("    This scan checks UDP ports. Note that UDP scanning can be slower due to timeouts.")
+
+    scan_choice = input("\033[32mEnter your choice (1, 2, 3, 4, or 5): \033[0m")
+    
+    if scan_choice == "1":
+        command = ["nmap", "-sV", "-sC", "-oX", "scan.xml", ip_address]
+    elif scan_choice == "2":
+        command = ["nmap", "-sS", "-oX", "scan.xml", ip_address]
+    elif scan_choice == "3":
+        command = ["nmap", "-p-", "-sV", "-sC", "-oX", "scan.xml", ip_address]
+    elif scan_choice == "4":
+        command = ["nmap", "-A", "-oX", "scan.xml", ip_address]
+    elif scan_choice == "5":
+        command = ["nmap", "-sU", "-oX", "scan.xml", ip_address]
+    else:
+        print("Invalid choice, defaulting to Default Scan")
+        command = ["nmap", "-sV", "-sC", "-oX", "scan.xml", ip_address]
+    
+    try:
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+        print(f"\nScan results on {ip_address}:\n{result.stdout}")
+        services = parse_nmap_xml("scan.xml")
+        nmap_output = result.stdout
+        nmap_command = " ".join(command)
+    except subprocess.CalledProcessError as e:
+        print("Nmap scan failed:", e)
+        return
+    
     if services:
         print_green("Sending results to ChatGPT...")
         services_info = generate_report_data(ip_address, services, openai)
-        generate_report_html(ip_address, services_info, nmap_output)
+        generate_report_html(ip_address, services_info, nmap_output, nmap_command)
     else:
         print("No open services found or scan failed.")
-
 
 if __name__ == "__main__":
     main()
